@@ -48,12 +48,6 @@
 
 typedef enum e_paramset { NONE=0, TEMP=2, WORKING=4, FILES=8 }t_paramset;
 
-/*typedef struct s_PositionsCamera
-{
-	long *l_startblock;
-	long *l_endblock;
-}t_PositionsCamera;*/
-
 // **************************************************************************** 
 // Définition(s) des variables statiques/externes
 // **************************************************************************** 
