@@ -46,8 +46,14 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 	char *destname=NULL;
 	
 	long taillefichier=0L;
+	long *offset;
+	long copy;
+
 	FILE	*readFILE;
 	char	*LogMsg=calloc(160,1);
+	
+	LinkedList *ll_positions=lc_init();
+	
 	
 	if(!duffile) return;
 	if(!tmpdirforunzip) 
@@ -147,21 +153,26 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			
 			fseek(srcFile,0L,SEEK_END);
 			taillefichier=ftell(srcFile);
-			fseek(srcFile,0L,SEEK_CUR);
+			fseek(srcFile,0L,SEEK_SET); // pas SEEK_CUR CONNARD !!!!
+			
 			
 			// on va copier le tout d'un bloc bordel de merde
 			
-			char *BufferOneBlock=calloc(taillefichier+1,sizeof(wchar_t));
+			char *BufferOneBlock=calloc(taillefichier+1,sizeof(char));
+			char car=0;
 			
 			// fread((char*)BufferOneBlock,sizeof(wchar_t),taillefichier,srcFile);
 			// fwrite((char*)BufferOneBlock,sizeof(char),taillefichier,destFile);
 			
-			long reste=taillefichier;
-			while(reste>0)
+			//long reste=taillefichier;
+			//while(reste>=0)
+			//{
+			
+			car=fgetc(srcFile);
+			while(car!=EOF)
 			{
-				wchar_t car=fgetwc(srcFile);
-				fputwc(car,destFile);
-				reste--;
+				fputc(car,destFile);
+				car=fgetc(srcFile);
 			}
 			
 			fflush(destFile);
@@ -177,7 +188,7 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		
 		chdir(tmpdirforunzip);
 		
-		readFILE=fopen(newname,"rt");
+		readFILE=fopen(newname,"r");
 		if(!readFILE)
 		{
 			sprintf(LogMsg,"[%s] -- Error %s",__func__,strerror(errno));
@@ -186,13 +197,108 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		}
 			
 		ReadBuffer=calloc(taillefichier,sizeof(char));
-		fread(ReadBuffer,sizeof(char),taillefichier,readFILE);
+		
+		unsigned long cursor=0;
+		char car=fgetc(readFILE);
+		while(car!=EOF)
+		{
+			ReadBuffer[cursor]=car;
+			car=fgetc(readFILE);
+			cursor++;
+		}
 		
 		sprintf(LogMsg,"\t %16ld MBytes read from file",(long)((taillefichier/1024)/1024));
 		Log(logFile,LogMsg);
 		
+		copy = (long)ReadBuffer;
 		
+		do
+		{
+			offset=calloc(1,sizeof(long));
+			
+			pSeek=strstr(ReadBuffer,PTRN_ID);
+			if(!pSeek) continue;
+			// *offset+=(pSeek-ReadBuffer);
+			
+			pSeek+=strlen(PTRN_ID)+1;
+			ReadBuffer=pSeek;
+			
+			pSeek=strstr(ReadBuffer,PTRN_LABEL);
+			pSeek+=strlen(PTRN_LABEL);
+			
+			//*offset+=(pSeek-ReadBuffer);
+
+			char *pBegin=pSeek;
+			char *pEnd;
+
+			pEnd=strstr(ReadBuffer,PTRN_END_LBL);
+			char *CameraName=calloc((pEnd-pBegin)+1,1);
+			strncpy(CameraName,pBegin,(pEnd-pBegin));
+			
+			//*offset+=(pEnd-ReadBuffer);
+
+			sprintf(LogMsg,"\t\t [ %s ]",CameraName);
+			Log(logFile,LogMsg);
+			
+			// On a détecté la caméra... maintenant on va faire comment ?
+			
+			// une fois le pattern obtenu on va faire un reverse
+			
+			while(*ReadBuffer!='{')
+			{
+				ReadBuffer--;
+				//(*offset)--;
+			}
+			
+			// une fois ici on est au début de l'élément "caméra"
+			
+			pBegin=ReadBuffer+1;
+			
+			*offset=(long)ReadBuffer-copy;
+			
+			// il faut déterminer un bloc qui sera remplacé (je sais pas comment)
+			// à partir d'ici on va chercher l'accolade fermante '}' (niveau 0)
+			// à chaque fois qu'on tombera sur une '{' on relève le niveau 
+			// à chaque fois qu'on tombera sur une '}' on abaisse le niveau sauf si on est à 0
+			// si on est à 0 on a trouvé la fin de la caméra...
+			
+			pEnd=strstr(pBegin,PTRN_END_ITEM);
+			pEnd+=strlen(PTRN_END_ITEM);
+			
+			
+			
+			sprintf(LogMsg,"\t\t\t offset %ld",*offset);
+			Log(logFile,LogMsg);
+			
+			lc_insert(offset,ll_positions,ueplong,sizeof(long));
+			
+			sleep(1);
+			
+			ReadBuffer=pEnd;
+			
+		}while(pSeek);
 		
+		// il va falloir effectuer des modifications sur la copie dont nous avons l'adresse
+		
+		/*while(ll_positions->NbElem>0)
+		{
+			lc_Datas *elem=lc_pop(ll_positions);
+			// t_PositionsCamera uneposition=*(t_PositionsCamera*)elem->value;
+			long l_position_element=*(long*)elem->value;
+		
+						
+			// sprintf(LogMsg,"\t\t premier bloc[%08ld,%08ld] taille %08ld",uneposition.l_startblock,uneposition.l_endblock,uneposition.l_endblock-uneposition.l_startblock);
+			sprintf(LogMsg,"\t\t bloc %08ld taille (%08ld-%08ld) (taille %08ld)",l_position_element,l_fin_buffer,copy,(l_fin_buffer-copy));
+			Log(logFile,LogMsg);
+			
+			// Là on va devoir ruser...
+			
+			
+			
+		}*/
+		
+		sleep(1);
+			
 		chdir(".."); // ne pas oublier évidemment ^^
 	}
 }
