@@ -161,13 +161,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			char *BufferOneBlock=calloc(taillefichier+1,sizeof(char));
 			char car=0;
 			
-			// fread((char*)BufferOneBlock,sizeof(wchar_t),taillefichier,srcFile);
-			// fwrite((char*)BufferOneBlock,sizeof(char),taillefichier,destFile);
-			
-			//long reste=taillefichier;
-			//while(reste>=0)
-			//{
-			
 			car=fgetc(srcFile);
 			while(car!=EOF)
 			{
@@ -256,17 +249,9 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			
 			*offset=(long)ReadBuffer-copy;
 			
-			// il faut déterminer un bloc qui sera remplacé (je sais pas comment)
-			// à partir d'ici on va chercher l'accolade fermante '}' (niveau 0)
-			// à chaque fois qu'on tombera sur une '{' on relève le niveau 
-			// à chaque fois qu'on tombera sur une '}' on abaisse le niveau sauf si on est à 0
-			// si on est à 0 on a trouvé la fin de la caméra...
-			
 			pEnd=strstr(pBegin,PTRN_END_ITEM);
 			pEnd+=strlen(PTRN_END_ITEM);
-			
-			
-			
+					
 			sprintf(LogMsg,"\t\t\t offset %ld",*offset);
 			Log(logFile,LogMsg);
 			
@@ -277,25 +262,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			ReadBuffer=pEnd;
 			
 		}while(pSeek);
-		
-		// il va falloir effectuer des modifications sur la copie dont nous avons l'adresse
-		
-		/*while(ll_positions->NbElem>0)
-		{
-			lc_Datas *elem=lc_pop(ll_positions);
-			// t_PositionsCamera uneposition=*(t_PositionsCamera*)elem->value;
-			long l_position_element=*(long*)elem->value;
-		
-						
-			// sprintf(LogMsg,"\t\t premier bloc[%08ld,%08ld] taille %08ld",uneposition.l_startblock,uneposition.l_endblock,uneposition.l_endblock-uneposition.l_startblock);
-			sprintf(LogMsg,"\t\t bloc %08ld taille (%08ld-%08ld) (taille %08ld)",l_position_element,l_fin_buffer,copy,(l_fin_buffer-copy));
-			Log(logFile,LogMsg);
-			
-			// Là on va devoir ruser...
-			
-			
-			
-		}*/
 		
 		sleep(1);
 			
