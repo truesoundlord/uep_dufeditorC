@@ -133,10 +133,6 @@ int main(int argc,char** argv)
 	
 	if(localTempDir!=NULL)
 	{
-		/*if(chdir(localTempDir)==-1)
-		{
-			mkdir(localTempDir,S_IRWXU|S_IRWXG|S_IRWXO);
-		}*/
 		AddToMessageBoxEx(localTempDir,&topStatusBar);
 	}
 	
