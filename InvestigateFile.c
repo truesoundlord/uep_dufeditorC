@@ -31,6 +31,8 @@
 extern FILE *logFile;
 extern PositionCadre ext_MainWindow;
 
+char				*ReadBuffer;
+
 // ****************************************************************************
 // SECTION : implémentation des fonctions
 // ****************************************************************************
@@ -40,6 +42,10 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 	// duffile is expected to be a .duf file...
 	// reading .duf files is not a solution, first we have to unzip it... (zip format I think)
 	
+	char *newname=NULL;
+	char *destname=NULL;
+	
+	long taillefichier=0L;
 	FILE	*readFILE;
 	char	*LogMsg=calloc(160,1);
 	
@@ -102,8 +108,8 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		pSeek=strstr(duffile,".duf");
 		if(pSeek)
 		{
-			char *newname=calloc(strlen(duffile)+1,1);
-			char *destname=calloc(FILENAME_MAX,1);
+			newname=calloc(strlen(duffile)+1,1);
+			destname=calloc(FILENAME_MAX,1);
 			
 			strncpy(newname,duffile,(pSeek-duffile));
 			//AddToMessageBoxEx(newname,&ext_MainWindow);
@@ -129,8 +135,8 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			
 			sprintf(destname,"%s/%s",tmpdirforunzip,newname);
 			
-			FILE *srcFile=fopen(newname,"rt");
-			FILE *destFile=fopen(destname,"wt");
+			FILE *srcFile=fopen(newname,"r");
+			FILE *destFile=fopen(destname,"w");
 			
 			if(!srcFile || !destFile)
 			{
@@ -140,23 +146,28 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			}
 			
 			fseek(srcFile,0L,SEEK_END);
-			long taillefichier=ftell(srcFile);
+			taillefichier=ftell(srcFile);
 			fseek(srcFile,0L,SEEK_CUR);
 			
 			// on va copier le tout d'un bloc bordel de merde
 			
-			char *BufferOneBlock=calloc(taillefichier+1,1);
+			char *BufferOneBlock=calloc(taillefichier+1,sizeof(wchar_t));
 			
-			fread((char*)BufferOneBlock,sizeof(char),taillefichier,srcFile);
-			fwrite((char*)BufferOneBlock,sizeof(char),taillefichier,destFile);
+			// fread((char*)BufferOneBlock,sizeof(wchar_t),taillefichier,srcFile);
+			// fwrite((char*)BufferOneBlock,sizeof(char),taillefichier,destFile);
+			
+			long reste=taillefichier;
+			while(reste>0)
+			{
+				wchar_t car=fgetwc(srcFile);
+				fputwc(car,destFile);
+				reste--;
+			}
 			
 			fflush(destFile);
 			
 			fclose(destFile);
 			fclose(srcFile);
-						
-			newname=NULL;
-			destname=NULL;
 			
 			free(BufferOneBlock);
 			BufferOneBlock=NULL;
@@ -164,7 +175,25 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		
 		// Copies are done !!
 		
+		chdir(tmpdirforunzip);
 		
+		readFILE=fopen(newname,"rt");
+		if(!readFILE)
+		{
+			sprintf(LogMsg,"[%s] -- Error %s",__func__,strerror(errno));
+			Log(logFile,LogMsg);
+			return;
+		}
+			
+		ReadBuffer=calloc(taillefichier,sizeof(char));
+		fread(ReadBuffer,sizeof(char),taillefichier,readFILE);
+		
+		sprintf(LogMsg,"\t %16ld MBytes read from file",(long)((taillefichier/1024)/1024));
+		Log(logFile,LogMsg);
+		
+		
+		
+		chdir(".."); // ne pas oublier évidemment ^^
 	}
 }
 
