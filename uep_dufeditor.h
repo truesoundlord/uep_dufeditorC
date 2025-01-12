@@ -36,11 +36,23 @@
 // Définitions des constantes symboliques
 // **************************************************************************** 
 
+#define PTRN_ID				"\"type\" : \"camera\","
+#define PTRN_LABEL		"\t\t\t\"label\" : \""
+#define PTRN_END_LBL	"\","
+#define PTRN_END_ITEM "]\n\t\t},\n\t\t"
+
+
 // **************************************************************************** 
 // Définition(s) des structures, types et énumérations
 // **************************************************************************** 
 
 typedef enum e_paramset { NONE=0, TEMP=2, WORKING=4, FILES=8 }t_paramset;
+
+/*typedef struct s_PositionsCamera
+{
+	long *l_startblock;
+	long *l_endblock;
+}t_PositionsCamera;*/
 
 // **************************************************************************** 
 // Définition(s) des variables statiques/externes
