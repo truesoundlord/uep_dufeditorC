@@ -47,12 +47,14 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 	
 	long taillefichier=0L;
 	long *offset;
+	long *offsetend;
 	long copy;
 
 	FILE	*readFILE;
 	char	*LogMsg=calloc(160,1);
 	
-	LinkedList *ll_positions=lc_init();
+	LinkedList *ll_positionsDebut=lc_init();
+	LinkedList *ll_positionsFin=lc_init();
 	
 	
 	if(!duffile) return;
@@ -103,12 +105,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		sprintf(LogMsg,"\t%s file uncompressed",duffile);
 		Log(logFile,LogMsg);
 		
-		/*
-			sprintf(command,"ark -b ./%s -o ./%s\0",duffile,tmpdirforunzip);
-			system(command);		
-			 
-		 */
-		
 		// Habituellement les fichiers archivés portent juste l'extension .duf en moins...
 		
 		pSeek=strstr(duffile,".duf");
@@ -118,7 +114,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			destname=calloc(FILENAME_MAX,1);
 			
 			strncpy(newname,duffile,(pSeek-duffile));
-			//AddToMessageBoxEx(newname,&ext_MainWindow);
 			
 			pSeek=strchr(newname,'/');
 			while(pSeek)
@@ -154,7 +149,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			fseek(srcFile,0L,SEEK_END);
 			taillefichier=ftell(srcFile);
 			fseek(srcFile,0L,SEEK_SET); // pas SEEK_CUR CONNARD !!!!
-			
 			
 			// on va copier le tout d'un bloc bordel de merde
 			
@@ -208,10 +202,10 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		do
 		{
 			offset=calloc(1,sizeof(long));
+			offsetend=calloc(1,sizeof(long));
 			
 			pSeek=strstr(ReadBuffer,PTRN_ID);
 			if(!pSeek) continue;
-			// *offset+=(pSeek-ReadBuffer);
 			
 			pSeek+=strlen(PTRN_ID)+1;
 			ReadBuffer=pSeek;
@@ -219,8 +213,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			pSeek=strstr(ReadBuffer,PTRN_LABEL);
 			pSeek+=strlen(PTRN_LABEL);
 			
-			//*offset+=(pSeek-ReadBuffer);
-
 			char *pBegin=pSeek;
 			char *pEnd;
 
@@ -228,8 +220,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			char *CameraName=calloc((pEnd-pBegin)+1,1);
 			strncpy(CameraName,pBegin,(pEnd-pBegin));
 			
-			//*offset+=(pEnd-ReadBuffer);
-
 			sprintf(LogMsg,"\t\t [ %s ]",CameraName);
 			Log(logFile,LogMsg);
 			
@@ -240,7 +230,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			while(*ReadBuffer!='{')
 			{
 				ReadBuffer--;
-				//(*offset)--;
 			}
 			
 			// une fois ici on est au début de l'élément "caméra"
@@ -251,21 +240,73 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			
 			pEnd=strstr(pBegin,PTRN_END_ITEM);
 			pEnd+=strlen(PTRN_END_ITEM);
+			
+			*offsetend=(long)pEnd-copy;
 					
-			sprintf(LogMsg,"\t\t\t offset %ld",*offset);
+			sprintf(LogMsg,"\t\t\t offset begin %ld offset end %ld",*offset,*offsetend);
 			Log(logFile,LogMsg);
 			
-			lc_insert(offset,ll_positions,ueplong,sizeof(long));
+			lc_add(offset,ll_positionsDebut,ueplong,sizeof(long));
+			lc_add(offsetend,ll_positionsFin,ueplong,sizeof(long));
 			
 			sleep(1);
 			
 			ReadBuffer=pEnd;
 			
+			free(CameraName);
 		}while(pSeek);
 		
+#ifdef DEBUG
 		sleep(1);
+#endif
+	
+		// Nous avons les offsets...
+		// Bon !!
+		
+		// on va relire le fichier caractère par caractère et former un "pseudo fichier"
+		// qui va "bypasser" tout ce qui concerne une camera... 
+		// je me demande si je ne devrais pas détecter le début ET la fin d'une caméra...
+		// du moins dans la liste avoir le début ET la fin (?)
+		
+		ReadBuffer=(char*)copy;
+			
+		pSeek=strstr(duffile,".duf");
+		if(pSeek)
+		{
+			strncpy(newname,duffile,(pSeek-duffile));
+			FILE *destFile=fopen(newname,"w");
+		
+			while(ll_positionsDebut->NbElem && ll_positionsFin->NbElem)
+			{
+				lc_Datas *tmpElemBegin=lc_pop(ll_positionsDebut);
+				lc_Datas *tmpElemEnd=lc_pop(ll_positionsFin);
+			
+				long lBegin=*(long*)tmpElemBegin->value;
+				long lEnd=*(long*)tmpElemEnd->value;
+			
+				// on va écrire les caractères jusqu'à ce que nous soyons
+				// dans la fourchette [lBegin,lEnd] 
+				// là on "bypass" les caractères jusqu'à la sortie lEnd[ 
+			
+				long positiondanslebuffer=0L;
+				while(positiondanslebuffer<strlen(ReadBuffer))
+				{
+					char carAEcrire=ReadBuffer[positiondanslebuffer];
+					if(positiondanslebuffer<lBegin && positiondanslebuffer>lEnd) fputc(carAEcrire,destFile);
+					positiondanslebuffer++;
+				} // endwhile (écriture)
+				free(tmpElemBegin);
+				free(tmpElemEnd);
+			}	// endwhile (blocs)
+			fflush(destFile);
+			fclose(destFile);
+		} // endif
 			
 		chdir(".."); // ne pas oublier évidemment ^^
+		
+		free(ReadBuffer);
+		free(ll_positionsDebut);
+		free(ll_positionsFin);
 	}
 }
 
