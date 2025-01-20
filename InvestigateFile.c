@@ -254,7 +254,10 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			ReadBuffer=pEnd;
 			
 			free(CameraName);
+			free(newname);
+			
 		}while(pSeek);
+		
 		
 #ifdef DEBUG
 		sleep(1);
@@ -273,8 +276,10 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		pSeek=strstr(duffile,".duf");
 		if(pSeek)
 		{
-			strncpy(newname,duffile,(pSeek-duffile));
-			FILE *destFile=fopen(newname,"w");
+			strncpy(destname,duffile,(pSeek-duffile));
+			strcat(destname,".processed");
+			
+			FILE *destFile=fopen(destname,"w");
 		
 			while(ll_positionsDebut->NbElem && ll_positionsFin->NbElem)
 			{
@@ -300,6 +305,9 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			}	// endwhile (blocs)
 			fflush(destFile);
 			fclose(destFile);
+			
+			free(destname);
+			
 		} // endif
 			
 		chdir(".."); // ne pas oublier évidemment ^^
