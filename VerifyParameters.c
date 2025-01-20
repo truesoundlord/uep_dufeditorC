@@ -54,7 +54,7 @@ unsigned short VerifyParameters(LinkedList *param)
 				pUnwrap=(char*)pExtracted->value;
 				pExtracted=pExtracted->pNext;
 			}
-			return us_NbVerified;
+			if(!pExtracted) break;
 		}
 		pExtracted=pExtracted->pNext;
 	}
