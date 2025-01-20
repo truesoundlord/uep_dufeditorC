@@ -10,7 +10,10 @@
 // ****************************************************************************
 
 // 11 jan 2025
-// Implementing
+// Implementing and testing
+
+// 20 jan 2025
+// still testing
 
 // ****************************************************************************
 // SECTION : fichiers d'inclusions
@@ -32,6 +35,16 @@ extern FILE *logFile;
 extern PositionCadre ext_MainWindow;
 
 char				*ReadBuffer;
+
+// **************************************************************************** 
+// Threads
+// **************************************************************************** 
+
+#ifdef THREADED
+pthread_mutex_t LockInvestigate;
+pthread_mutex_t LockIO;
+pthread_mutex_t LockMsg;
+#endif
 
 // ****************************************************************************
 // SECTION : implémentation des fonctions
@@ -56,6 +69,9 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 	LinkedList *ll_positionsDebut=lc_init();
 	LinkedList *ll_positionsFin=lc_init();
 	
+	// **************************************************************************
+	// PRE PROCESS
+	// **************************************************************************
 	
 	if(!duffile) return;
 	if(!tmpdirforunzip) 
@@ -86,6 +102,10 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		return;
 	}
 	
+	// **************************************************************************
+	// END
+	// **************************************************************************
+		
 	if(rtcd!=REG_NOMATCH) // the file is a .duf extension file
 	{
 		sprintf(LogMsg,"[%s] %s is a .duf file...",__func__,duffile);
@@ -95,6 +115,10 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		
 		// BUG: si le répertoire existe déjà ça foire...
 		
+		// **************************************************************************
+		// UNCOMPRESSING .duf FILE
+		// **************************************************************************
+			
 		char *command=calloc(255,1);
 		char *pSeek=NULL;
 		
@@ -105,6 +129,10 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		sprintf(LogMsg,"\t%s file uncompressed",duffile);
 		Log(logFile,LogMsg);
 		
+		// **************************************************************************
+		// END
+		// **************************************************************************
+			
 		// Habituellement les fichiers archivés portent juste l'extension .duf en moins...
 		
 		pSeek=strstr(duffile,".duf");
@@ -122,6 +150,10 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 				pSeek=strchr(newname,'/');
 			}
 			
+			// **************************************************************************
+			// COPYING to tmpdirfirunzip
+			// **************************************************************************
+				
 			sprintf(LogMsg,"%s is being copied in %s...",newname,tmpdirforunzip);
 			AddToMessageBoxEx(LogMsg,&ext_MainWindow);
 			
@@ -169,11 +201,20 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			
 			free(BufferOneBlock);
 			BufferOneBlock=NULL;
+			
+			// **************************************************************************
+			// END
+			// **************************************************************************
 		}
+		else return;
 		
 		// Copies are done !!
-		
+			
 		chdir(tmpdirforunzip);
+		
+		// **************************************************************************
+		// MARKING Camera blocks
+		// **************************************************************************
 		
 		readFILE=fopen(newname,"r");
 		if(!readFILE)
@@ -224,7 +265,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			Log(logFile,LogMsg);
 			
 			// On a détecté la caméra... maintenant on va faire comment ?
-			
 			// une fois le pattern obtenu on va faire un reverse
 			
 			while(*ReadBuffer!='{')
@@ -254,10 +294,13 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			ReadBuffer=pEnd;
 			
 			free(CameraName);
-			free(newname);
+			//free(newname);
 			
 		}while(pSeek);
 		
+		// **************************************************************************
+		// END
+		// **************************************************************************
 		
 #ifdef DEBUG
 		sleep(1);
@@ -271,6 +314,10 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// je me demande si je ne devrais pas détecter le début ET la fin d'une caméra...
 		// du moins dans la liste avoir le début ET la fin (?)
 		
+		// **************************************************************************
+		// SAVING modified FILE
+		// **************************************************************************
+			
 		ReadBuffer=(char*)copy;
 			
 		pSeek=strstr(duffile,".duf");
@@ -278,6 +325,13 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		{
 			strncpy(destname,duffile,(pSeek-duffile));
 			strcat(destname,".processed");
+			
+			pSeek=strchr(destname,'/');
+			while(pSeek)
+			{
+				destname=pSeek+1;
+				pSeek=strchr(destname,'/');
+			}
 			
 			FILE *destFile=fopen(destname,"w");
 		
@@ -309,7 +363,17 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			free(destname);
 			
 		} // endif
-			
+		
+		// **************************************************************************
+		// END
+		// **************************************************************************
+		
+		// TODO:
+		
+		// Pour après: 
+		// zip -r -0 <FILE>.duf <FILE> 
+		// retirer les 68 premiers caractères ajoutés par zip du fichier .duf
+		
 		chdir(".."); // ne pas oublier évidemment ^^
 		
 		free(ReadBuffer);
