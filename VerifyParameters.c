@@ -47,14 +47,6 @@ unsigned short VerifyParameters(LinkedList *param)
 		if(strcmp("-f",pUnwrap)==0)
 		{
 			us_NbVerified|=FILES;
-			pExtracted=pExtracted->pNext;											// skip -f
-			
-			while(pExtracted != NULL)
-			{
-				pUnwrap=(char*)pExtracted->value;
-				pExtracted=pExtracted->pNext;
-			}
-			if(!pExtracted) break;
 		}
 		pExtracted=pExtracted->pNext;
 	}
