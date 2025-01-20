@@ -13,6 +13,8 @@
 // Fichiers de définitions
 // **************************************************************************** 
 
+#include <signal.h>
+
 #include "uep_dufeditor.h"
 
 // **************************************************************************** 
@@ -40,10 +42,11 @@ char					*localTempDir=NULL;
 unsigned short	us_Width;
 unsigned short	us_Height;
 
+
+
 // ****************************************************************************
 // SECTION : prototypes des fonctions en test pour CE code source
 // ****************************************************************************
-
 
 
 /*
@@ -140,16 +143,27 @@ int main(int argc,char** argv)
 		
 	if ((params & FILES) == FILES)
 	{
-		// Normalement les fichiers sont en fin de liste
-		// -f indique la fin de la liste des fichiers à traiter
+		// * est pris en charge (vive les os)
+		lc_Datas *candidat;
+		int debutfichiers=lc_FindByValue(Parametres,"-f",compareme);
+		int finfichiers=lc_FindByValue(Parametres,"-t",compareme);
+		if(finfichiers==-1)
+		{
+			finfichiers=lc_FindByValue(Parametres,"-w",compareme);
+		}
+		if(finfichiers==-1)
+		{
+			candidat=Parametres->pTail;
+		}
+		else
+		{
+			candidat=lc_search(Parametres,finfichiers+1);
+		}
 		
-		// * est pris en charge (?)
-		
-		lc_Datas *candidat=Parametres->pTail;
 		while(candidat!=NULL)
 		{
 			char *nomfichier=(char*)candidat->value;
-			if(strcmp(nomfichier,"-f")==0) break;
+			if(candidat->item_Number==debutfichiers) break;
 			AddToMessageBoxEx(nomfichier,&downStatusBar);
 			lc_insert(nomfichier,Fichiers,uepuserdef,strlen(nomfichier)+1);
 			candidat=candidat->pPrevious;
