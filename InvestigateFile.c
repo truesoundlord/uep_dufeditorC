@@ -395,7 +395,7 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		
 		// Pour après: 
 		// zip -r -0 <FILE>.duf <FILE> 
-		// retirer les 68 premiers caractères ajoutés par zip du fichier .duf
+		// retirer les 71 premiers caractères ajoutés par zip du fichier .duf
 		
 		// **************************************************************************
 		// COMPRESSING IN .duf FORMAT 
@@ -414,7 +414,7 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		rename(destname,newname);
 		
 		command=calloc(255,1);
-		sprintf(command,"zip -r -0 %s.duf %s",destname,destname);
+		sprintf(command,"zip -r -0 %s.duf %s",newname,newname);
 		
 		system(command);
 		
@@ -423,25 +423,31 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// effacer le fichier .duf
 		// écrire sur le fichier .duf le contenu à partir du 68ème byte
 		
-		sprintf(newname,"%s.duf",destname);
+		sprintf(destname,"%s.duf",newname);
 		
-		readFILE=fopen(newname,"r");
+		readFILE=fopen(destname,"r");
+		if(!readFILE)
+		{
+			sprintf(LogMsg,"[%s] Error -> %s",__func__,strerror(errno));
+			Log(logFile,LogMsg);
+			return;
+		}
 		
-		unlink(destname);		
+		unlink(newname);		
 		
-		FILE *writeFile=fopen(destname,"w");
+		FILE *writeFile=fopen(newname,"w");
 		
 		fseek(readFILE,0L,SEEK_END);
 		taillefichier=ftell(readFILE);
-		fseek(readFILE,68L,SEEK_SET);	// on lit à partir du 68ème byte 
+		fseek(readFILE,ZIPPREFIXLN,SEEK_SET);	// on lit à partir du 68ème byte 
 		
 		ReadBuffer=NULL;
 		ReadBuffer=calloc(taillefichier+1,sizeof(char));
 
 		// Ici on est en BINAIRE plus en TEXTE
 		
-		fread(ReadBuffer,taillefichier-68L,sizeof(char),readFILE);			
-		fwrite(ReadBuffer,taillefichier-68L,sizeof(char),writeFile);
+		fread(ReadBuffer,taillefichier-ZIPPREFIXLN,sizeof(char),readFILE);			
+		fwrite(ReadBuffer,taillefichier-ZIPPREFIXLN,sizeof(char),writeFile);
 		fflush(writeFile);
 		
 		fclose(readFILE);
@@ -451,10 +457,12 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// END
 		// **************************************************************************
 		
+		unlink(destname);
+		rename(newname,destname);
 		
 		pSeek=NULL;
-		free(destname);
-		free(newname);
+		destname=NULL;
+		newname=NULL;
 		
 		chdir(".."); // ne pas oublier évidemment ^^
 		
