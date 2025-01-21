@@ -34,7 +34,9 @@
 extern FILE *logFile;
 extern PositionCadre ext_MainWindow;
 
-char				*ReadBuffer;
+long	copy;
+char	*ReadBuffer;
+char	safety[4096];	// DEBUG
 
 // **************************************************************************** 
 // Threads
@@ -54,20 +56,20 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 {
 	// duffile is expected to be a .duf file...
 	// reading .duf files is not a solution, first we have to unzip it... (zip format I think)
-	
-	char *newname=NULL;
-	char *destname=NULL;
-	
+		
 	long taillefichier=0L;
 	long *offset;
 	long *offsetend;
-	long copy;
+	
 
 	FILE	*readFILE;
-	char	*LogMsg=calloc(160,1);
-	
+		
 	LinkedList *ll_positionsDebut=lc_init();
 	LinkedList *ll_positionsFin=lc_init();
+	
+	char	*newname=NULL;
+	char	*destname=NULL;
+	char	*LogMsg=calloc(160,1);
 	
 	// **************************************************************************
 	// PRE PROCESS
@@ -128,6 +130,8 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		
 		sprintf(LogMsg,"\t%s file uncompressed",duffile);
 		Log(logFile,LogMsg);
+		
+		free(command);
 		
 		// **************************************************************************
 		// END
@@ -333,34 +337,53 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 				pSeek=strchr(destname,'/');
 			}
 			
-			FILE *destFile=fopen(destname,"w");
-		
-			while(ll_positionsDebut->NbElem && ll_positionsFin->NbElem)
+			FILE *destFile=fopen(destname,"w+t");
+			long positiondanslebuffer=0L;
+			
+			lc_Datas *tmpElemBegin=lc_pop(ll_positionsDebut);
+			lc_Datas *tmpElemEnd=lc_pop(ll_positionsFin);
+			
+			long lBegin=*(long*)tmpElemBegin->value;
+			long lEnd=*(long*)tmpElemEnd->value;
+			
+			while(positiondanslebuffer<taillefichier)
 			{
-				lc_Datas *tmpElemBegin=lc_pop(ll_positionsDebut);
-				lc_Datas *tmpElemEnd=lc_pop(ll_positionsFin);
-			
-				long lBegin=*(long*)tmpElemBegin->value;
-				long lEnd=*(long*)tmpElemEnd->value;
-			
-				// on va écrire les caractères jusqu'à ce que nous soyons
-				// dans la fourchette [lBegin,lEnd] 
-				// là on "bypass" les caractères jusqu'à la sortie lEnd[ 
-			
-				long positiondanslebuffer=0L;
-				while(positiondanslebuffer<strlen(ReadBuffer))
+				char carAEcrire=ReadBuffer[positiondanslebuffer];
+				if(positiondanslebuffer<lBegin && positiondanslebuffer>lEnd) 
 				{
-					char carAEcrire=ReadBuffer[positiondanslebuffer];
-					if(positiondanslebuffer<lBegin && positiondanslebuffer>lEnd) fputc(carAEcrire,destFile);
-					positiondanslebuffer++;
-				} // endwhile (écriture)
-				free(tmpElemBegin);
-				free(tmpElemEnd);
-			}	// endwhile (blocs)
+					fputc(carAEcrire,destFile);
+				}
+				if(positiondanslebuffer==lBegin)
+				{
+					sprintf(LogMsg,"DEBUG\t[%c] BEGIN -> %08ld",carAEcrire,positiondanslebuffer);
+					Log(logFile,LogMsg);
+				}
+				if(positiondanslebuffer==lEnd)
+				{
+					sprintf(LogMsg,"DEBUG\t[%c] END -> %08ld",carAEcrire,positiondanslebuffer);
+					Log(logFile,LogMsg);
+					tmpElemBegin=lc_pop(ll_positionsDebut);
+					tmpElemEnd=lc_pop(ll_positionsFin);
+					
+					if(tmpElemBegin && tmpElemEnd)
+					{
+						lBegin=*(long*)tmpElemBegin->value;
+						lEnd=*(long*)tmpElemEnd->value;
+					}
+					else
+					{
+						lBegin=taillefichier;
+						lEnd=0L;
+					}
+				}
+				positiondanslebuffer++;
+			}
+			
+			free(tmpElemBegin);
+			free(tmpElemEnd);
+			
 			fflush(destFile);
 			fclose(destFile);
-			
-			free(destname);
 			
 		} // endif
 		
@@ -373,6 +396,65 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// Pour après: 
 		// zip -r -0 <FILE>.duf <FILE> 
 		// retirer les 68 premiers caractères ajoutés par zip du fichier .duf
+		
+		// **************************************************************************
+		// COMPRESSING IN .duf FORMAT 
+		// **************************************************************************
+				
+		newname=NULL;
+		newname=calloc(FILENAME_MAX,1);
+		
+		pSeek=strstr(destname,".processed");
+		if(pSeek)
+		{
+			strncpy(newname,destname,(pSeek-destname));
+		}
+		
+		unlink(newname);
+		rename(destname,newname);
+		
+		command=calloc(255,1);
+		sprintf(command,"zip -r -0 %s.duf %s",destname,destname);
+		
+		system(command);
+		
+		// TODO:
+		// ouvrir le fichier .duf et lire le contenu
+		// effacer le fichier .duf
+		// écrire sur le fichier .duf le contenu à partir du 68ème byte
+		
+		sprintf(newname,"%s.duf",destname);
+		
+		readFILE=fopen(newname,"r");
+		
+		unlink(destname);		
+		
+		FILE *writeFile=fopen(destname,"w");
+		
+		fseek(readFILE,0L,SEEK_END);
+		taillefichier=ftell(readFILE);
+		fseek(readFILE,68L,SEEK_SET);	// on lit à partir du 68ème byte 
+		
+		ReadBuffer=NULL;
+		ReadBuffer=calloc(taillefichier+1,sizeof(char));
+
+		// Ici on est en BINAIRE plus en TEXTE
+		
+		fread(ReadBuffer,taillefichier-68L,sizeof(char),readFILE);			
+		fwrite(ReadBuffer,taillefichier-68L,sizeof(char),writeFile);
+		fflush(writeFile);
+		
+		fclose(readFILE);
+		fclose(writeFile);
+		
+		// **************************************************************************
+		// END
+		// **************************************************************************
+		
+		
+		pSeek=NULL;
+		free(destname);
+		free(newname);
 		
 		chdir(".."); // ne pas oublier évidemment ^^
 		
