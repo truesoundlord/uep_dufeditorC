@@ -39,9 +39,9 @@
 #define PTRN_ID				"\"type\" : \"camera\","
 #define PTRN_LABEL		"\t\t\t\"label\" : \""
 #define PTRN_END_LBL	"\","
-// #define PTRN_END_ITEM "]\n\t\t},\n\t\t"
-#define PTRN_END_ITEM "]\n\t\t}" // ,\n\t\t"
+#define PTRN_END_ITEM "]\n\t\t}"
 
+#define ZIPPREFIXLN		71L
 
 // **************************************************************************** 
 // Définition(s) des structures, types et énumérations
