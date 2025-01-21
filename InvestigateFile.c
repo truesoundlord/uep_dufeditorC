@@ -287,6 +287,8 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			
 			*offsetend=(long)pEnd-copy;
 					
+			*offset-=1;
+			
 			sprintf(LogMsg,"\t\t\t offset begin %ld offset end %ld",*offset,*offsetend);
 			Log(logFile,LogMsg);
 			
@@ -349,9 +351,13 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			while(positiondanslebuffer<taillefichier)
 			{
 				char carAEcrire=ReadBuffer[positiondanslebuffer];
-				if(positiondanslebuffer<lBegin && positiondanslebuffer>lEnd) 
+				if(positiondanslebuffer<lBegin || positiondanslebuffer>lEnd) 
 				{
 					fputc(carAEcrire,destFile);
+				}
+				else
+				{
+					fputc(carAEcrire,logFile);
 				}
 				if(positiondanslebuffer==lBegin)
 				{
@@ -413,6 +419,9 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		unlink(newname);
 		rename(destname,newname);
 		
+		sprintf(destname,"%s.duf",newname);
+		unlink(destname);
+		
 		command=calloc(255,1);
 		sprintf(command,"zip -r -0 %s.duf %s",newname,newname);
 		
@@ -423,7 +432,7 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// effacer le fichier .duf
 		// écrire sur le fichier .duf le contenu à partir du 68ème byte
 		
-		sprintf(destname,"%s.duf",newname);
+		
 		
 		readFILE=fopen(destname,"r");
 		if(!readFILE)
@@ -439,15 +448,15 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		
 		fseek(readFILE,0L,SEEK_END);
 		taillefichier=ftell(readFILE);
-		fseek(readFILE,ZIPPREFIXLN,SEEK_SET);	// on lit à partir du 68ème byte 
+		fseek(readFILE,68L,SEEK_SET);	// on lit à partir du 68ème byte 
 		
 		ReadBuffer=NULL;
 		ReadBuffer=calloc(taillefichier+1,sizeof(char));
 
 		// Ici on est en BINAIRE plus en TEXTE
 		
-		fread(ReadBuffer,taillefichier-ZIPPREFIXLN,sizeof(char),readFILE);			
-		fwrite(ReadBuffer,taillefichier-ZIPPREFIXLN,sizeof(char),writeFile);
+		fread(ReadBuffer,taillefichier,1,readFILE);			
+		fwrite(ReadBuffer,taillefichier-171L,1,writeFile);
 		fflush(writeFile);
 		
 		fclose(readFILE);
