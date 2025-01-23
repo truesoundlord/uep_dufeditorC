@@ -286,9 +286,8 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			pEnd+=strlen(PTRN_END_ITEM);
 			
 			*offsetend=(long)pEnd-copy;
+			*offsetend-=1;
 					
-			*offset-=1;
-			
 			sprintf(LogMsg,"\t\t\t offset begin %ld offset end %ld",*offset,*offsetend);
 			Log(logFile,LogMsg);
 			
@@ -361,12 +360,12 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 				}
 				if(positiondanslebuffer==lBegin)
 				{
-					sprintf(LogMsg,"DEBUG\t[%c] BEGIN -> %08ld",carAEcrire,positiondanslebuffer);
+					sprintf(LogMsg,"DEBUG\t[%c (%03d)] BEGIN -> %08ld",carAEcrire,carAEcrire,positiondanslebuffer);
 					Log(logFile,LogMsg);
 				}
 				if(positiondanslebuffer==lEnd)
 				{
-					sprintf(LogMsg,"DEBUG\t[%c] END -> %08ld",carAEcrire,positiondanslebuffer);
+					sprintf(LogMsg,"DEBUG\t[%c (%03d)] END -> %08ld",carAEcrire,carAEcrire,positiondanslebuffer);
 					Log(logFile,LogMsg);
 					tmpElemBegin=lc_pop(ll_positionsDebut);
 					tmpElemEnd=lc_pop(ll_positionsFin);
@@ -403,12 +402,17 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// zip -r -0 <FILE>.duf <FILE> 
 		// retirer les 71 premiers caractères ajoutés par zip du fichier .duf
 		
+		// cat <FILE> | gzip > <FILE>.duf
+		// a l'air de fonctionner mais les données sont compressées (la taille change)
+		
 		// **************************************************************************
 		// COMPRESSING IN .duf FORMAT 
 		// **************************************************************************
 				
 		newname=NULL;
 		newname=calloc(FILENAME_MAX,1);
+		
+		// renommer .processed 
 		
 		pSeek=strstr(destname,".processed");
 		if(pSeek)
@@ -419,20 +423,25 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		unlink(newname);
 		rename(destname,newname);
 		
+		// préparer l'archivage avec l'extension .duf
+		
 		sprintf(destname,"%s.duf",newname);
 		unlink(destname);
 		
+		// archiver au format .duf
+		
 		command=calloc(255,1);
-		sprintf(command,"zip -r -0 %s.duf %s",newname,newname);
+		//sprintf(command,"zip -r -0 %s.duf %s",newname,newname);
+		sprintf(command,"cat %s | gzip %s.duf",newname,newname);
 		
 		system(command);
+		
+#ifdef DEBUG
 		
 		// TODO:
 		// ouvrir le fichier .duf et lire le contenu
 		// effacer le fichier .duf
 		// écrire sur le fichier .duf le contenu à partir du 68ème byte
-		
-		
 		
 		readFILE=fopen(destname,"r");
 		if(!readFILE)
@@ -454,9 +463,20 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		ReadBuffer=calloc(taillefichier+1,sizeof(char));
 
 		// Ici on est en BINAIRE plus en TEXTE
+		// Apparemment il ne faut pas !!! 23 jan 2025
 		
-		fread(ReadBuffer,taillefichier,1,readFILE);			
-		fwrite(ReadBuffer,taillefichier-171L,1,writeFile);
+		//fread(ReadBuffer,taillefichier,1,readFILE);			
+		//fwrite(ReadBuffer,taillefichier-171L,1,writeFile);
+		
+		long positiondanslefichier=0L;
+		while(positiondanslefichier<taillefichier-171L)
+		{
+			char unCaractere=fgetc(readFILE);
+			if(unCaractere==EOF) break;
+			fputc(unCaractere,writeFile);
+			positiondanslefichier++;
+		}
+				
 		fflush(writeFile);
 		
 		fclose(readFILE);
@@ -468,6 +488,7 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		
 		unlink(destname);
 		rename(newname,destname);
+#endif
 		
 		pSeek=NULL;
 		destname=NULL;
