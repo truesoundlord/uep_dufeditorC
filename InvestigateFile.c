@@ -124,7 +124,8 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		char *command=calloc(255,1);
 		char *pSeek=NULL;
 		
-		
+		// gunzip -c <FILE>.duf > <PATH>/<FILE> fonctionne aussi
+				
 		sprintf(command,"ark -b ./%s \0",duffile);
 		system(command);		
 		
@@ -307,10 +308,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// END
 		// **************************************************************************
 		
-#ifdef DEBUG
-		sleep(1);
-#endif
-	
 		// Nous avons les offsets...
 		// Bon !!
 		
@@ -396,13 +393,7 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// END
 		// **************************************************************************
 		
-		// TODO:
-		
-		// Pour après: 
-		// zip -r -0 <FILE>.duf <FILE> 
-		// retirer les 71 premiers caractères ajoutés par zip du fichier .duf
-		
-		// cat <FILE> | gzip > <FILE>.duf
+		// cat <FILE> | gzip --fast > <FILE>.duf
 		// a l'air de fonctionner mais les données sont compressées (la taille change)
 		
 		// **************************************************************************
@@ -431,64 +422,10 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// archiver au format .duf
 		
 		command=calloc(255,1);
-		//sprintf(command,"zip -r -0 %s.duf %s",newname,newname);
-		sprintf(command,"cat %s | gzip %s.duf",newname,newname);
+		sprintf(command,"cat %s | gzip --fast > %s.duf",newname,newname);
 		
 		system(command);
-		
-#ifdef DEBUG
-		
-		// TODO:
-		// ouvrir le fichier .duf et lire le contenu
-		// effacer le fichier .duf
-		// écrire sur le fichier .duf le contenu à partir du 68ème byte
-		
-		readFILE=fopen(destname,"r");
-		if(!readFILE)
-		{
-			sprintf(LogMsg,"[%s] Error -> %s",__func__,strerror(errno));
-			Log(logFile,LogMsg);
-			return;
-		}
-		
-		unlink(newname);		
-		
-		FILE *writeFile=fopen(newname,"w");
-		
-		fseek(readFILE,0L,SEEK_END);
-		taillefichier=ftell(readFILE);
-		fseek(readFILE,68L,SEEK_SET);	// on lit à partir du 68ème byte 
-		
-		ReadBuffer=NULL;
-		ReadBuffer=calloc(taillefichier+1,sizeof(char));
-
-		// Ici on est en BINAIRE plus en TEXTE
-		// Apparemment il ne faut pas !!! 23 jan 2025
-		
-		//fread(ReadBuffer,taillefichier,1,readFILE);			
-		//fwrite(ReadBuffer,taillefichier-171L,1,writeFile);
-		
-		long positiondanslefichier=0L;
-		while(positiondanslefichier<taillefichier-171L)
-		{
-			char unCaractere=fgetc(readFILE);
-			if(unCaractere==EOF) break;
-			fputc(unCaractere,writeFile);
-			positiondanslefichier++;
-		}
-				
-		fflush(writeFile);
-		
-		fclose(readFILE);
-		fclose(writeFile);
-		
-		// **************************************************************************
-		// END
-		// **************************************************************************
-		
 		unlink(destname);
-		rename(newname,destname);
-#endif
 		
 		pSeek=NULL;
 		destname=NULL;
