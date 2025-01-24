@@ -15,6 +15,9 @@
 // 20 jan 2025
 // still testing
 
+// 24 jan 2025
+// working
+
 // ****************************************************************************
 // SECTION : fichiers d'inclusions
 // ****************************************************************************
@@ -54,9 +57,6 @@ pthread_mutex_t LockMsg;
 
 void InvestigateFile(char *duffile,char *tmpdirforunzip)
 {
-	// duffile is expected to be a .duf file...
-	// reading .duf files is not a solution, first we have to unzip it... (zip format I think)
-		
 	long taillefichier=0L;
 	long *offset;
 	long *offsetend;
@@ -138,8 +138,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// END
 		// **************************************************************************
 			
-		// Habituellement les fichiers archivés portent juste l'extension .duf en moins...
-		
 		pSeek=strstr(duffile,".duf");
 		if(pSeek)
 		{
@@ -187,8 +185,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			taillefichier=ftell(srcFile);
 			fseek(srcFile,0L,SEEK_SET); // pas SEEK_CUR CONNARD !!!!
 			
-			// on va copier le tout d'un bloc bordel de merde
-			
 			char *BufferOneBlock=calloc(taillefichier+1,sizeof(char));
 			char car=0;
 			
@@ -213,8 +209,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		}
 		else return;
 		
-		// Copies are done !!
-			
 		chdir(tmpdirforunzip);
 		
 		// **************************************************************************
@@ -287,7 +281,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			pEnd+=strlen(PTRN_END_ITEM);
 			
 			*offsetend=(long)pEnd-copy;
-			*offsetend-=1;
 					
 			sprintf(LogMsg,"\t\t\t offset begin %ld offset end %ld",*offset,*offsetend);
 			Log(logFile,LogMsg);
@@ -307,14 +300,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// **************************************************************************
 		// END
 		// **************************************************************************
-		
-		// Nous avons les offsets...
-		// Bon !!
-		
-		// on va relire le fichier caractère par caractère et former un "pseudo fichier"
-		// qui va "bypasser" tout ce qui concerne une camera... 
-		// je me demande si je ne devrais pas détecter le début ET la fin d'une caméra...
-		// du moins dans la liste avoir le début ET la fin (?)
 		
 		// **************************************************************************
 		// SAVING modified FILE
@@ -393,9 +378,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// END
 		// **************************************************************************
 		
-		// cat <FILE> | gzip --fast > <FILE>.duf
-		// a l'air de fonctionner mais les données sont compressées (la taille change)
-		
 		// **************************************************************************
 		// COMPRESSING IN .duf FORMAT 
 		// **************************************************************************
@@ -425,7 +407,7 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		sprintf(command,"cat %s | gzip --fast > %s.duf",newname,newname);
 		
 		system(command);
-		unlink(destname);
+		unlink(newname);
 		
 		pSeek=NULL;
 		destname=NULL;
