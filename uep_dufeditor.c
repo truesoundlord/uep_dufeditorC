@@ -128,7 +128,7 @@ int main(int argc,char** argv)
 		if(chdir(localWorkingDir)==-1)
 		{
 			mkdir(localWorkingDir,S_IRWXU|S_IRWXG|S_IRWXO);
-			chdir(localWorkingDir);
+			//chdir(localWorkingDir);
 		}
 		//DisplayXY(localWorkingDir,FenetrePrincipale.FirstPrintableX,FenetrePrincipale.FirstPrintableY);
 		AddToMessageBoxEx(localWorkingDir,&topStatusBar);
@@ -146,18 +146,64 @@ int main(int argc,char** argv)
 		// * est pris en charge (vive les os)
 		lc_Datas *candidat;
 		int debutfichiers=lc_FindByValue(Parametres,"-f",compareme);
-		int finfichiers=lc_FindByValue(Parametres,"-t",compareme);
-		if(finfichiers==-1)
-		{
-			finfichiers=lc_FindByValue(Parametres,"-w",compareme);
-		}
-		if(finfichiers==-1)
+		int marktemp=lc_FindByValue(Parametres,"-t",compareme);
+		int markwork=lc_FindByValue(Parametres,"-w",compareme);
+
+		// NONE
+		
+		if(marktemp==-1 && markwork==-1)
 		{
 			candidat=Parametres->pTail;
 		}
-		else
+		
+		// ONE BEFORE -f
+		
+		if( (marktemp > debutfichiers && markwork==-1) || (markwork > debutfichiers && marktemp==-1) ) // -t or -w BEFORE -f
 		{
-			candidat=lc_search(Parametres,finfichiers+1);
+			candidat=Parametres->pTail;
+		}
+		
+		// ONE BEFORE ONE AFTER
+		
+		if(marktemp < debutfichiers && markwork > debutfichiers && marktemp>=1000) // -t after -f -w before -f
+		{
+			candidat=lc_search(Parametres,marktemp+1);
+		}
+		if(markwork < debutfichiers && marktemp > debutfichiers && markwork>=1000) // -w after -f -t before -f
+		{
+			candidat=lc_search(Parametres,markwork+1);
+		}
+		
+		// BOTH BEFORE
+				
+		if(marktemp > debutfichiers && markwork > debutfichiers) // both before -f
+		{
+			candidat=Parametres->pTail;
+		}
+				
+		// BOTH AFTER
+		
+		if(marktemp < debutfichiers && markwork < debutfichiers && marktemp>=1000 && markwork>=1000)
+		{
+			if(marktemp > markwork)
+			{
+				candidat=lc_search(Parametres,marktemp+1);
+			}
+			if(markwork > marktemp)
+			{
+				candidat=lc_search(Parametres,markwork+1);
+			}
+		}
+		
+		// ONE AFTER
+		
+		if(marktemp < debutfichiers && markwork==-1)
+		{
+			candidat=lc_search(Parametres,marktemp+1);
+		}
+		if(markwork < debutfichiers && marktemp==-1)
+		{
+			candidat=lc_search(Parametres,markwork+1);
 		}
 		
 		while(candidat!=NULL)
