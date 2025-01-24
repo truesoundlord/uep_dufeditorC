@@ -60,7 +60,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 	long taillefichier=0L;
 	long *offset;
 	long *offsetend;
-	
 
 	FILE	*readFILE;
 		
@@ -115,8 +114,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		
 		Log(logFile,"\tuncompressing...");
 		
-		// BUG: si le répertoire existe déjà ça foire...
-		
 		// **************************************************************************
 		// UNCOMPRESSING .duf FILE
 		// **************************************************************************
@@ -124,9 +121,7 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		char *command=calloc(255,1);
 		char *pSeek=NULL;
 		
-		// gunzip -c <FILE>.duf > <PATH>/<FILE> fonctionne aussi
-				
-		sprintf(command,"ark -b ./%s \0",duffile);
+		sprintf(command,"ark -b ./%s",duffile);
 		system(command);		
 		
 		sprintf(LogMsg,"\t%s file uncompressed",duffile);
@@ -141,7 +136,7 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		pSeek=strstr(duffile,".duf");
 		if(pSeek)
 		{
-			newname=calloc(strlen(duffile)+1,1);
+			newname=calloc(FILENAME_MAX,1);
 			destname=calloc(FILENAME_MAX,1);
 			
 			strncpy(newname,duffile,(pSeek-duffile));
@@ -263,25 +258,35 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			sprintf(LogMsg,"\t\t [ %s ]",CameraName);
 			Log(logFile,LogMsg);
 			
-			// On a détecté la caméra... maintenant on va faire comment ?
-			// une fois le pattern obtenu on va faire un reverse
+			// ******************************
+			// BLOCK START ADDRESS
+			// ******************************
 			
 			while(*ReadBuffer!='{')
 			{
 				ReadBuffer--;
 			}
-			
-			// une fois ici on est au début de l'élément "caméra"
-			
+						
 			pBegin=ReadBuffer+1;
-			
 			*offset=(long)ReadBuffer-copy;
 			
+			// ******************************
+			// DONE
+			// ******************************
+			
+			// ******************************
+			// BLOCK END ADDRESS
+			// ******************************
+						
 			pEnd=strstr(pBegin,PTRN_END_ITEM);
 			pEnd+=strlen(PTRN_END_ITEM);
 			
 			*offsetend=(long)pEnd-copy;
-					
+			
+			// ******************************
+			// DONE
+			// ******************************
+								
 			sprintf(LogMsg,"\t\t\t offset begin %ld offset end %ld",*offset,*offsetend);
 			Log(logFile,LogMsg);
 			
@@ -293,7 +298,6 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 			ReadBuffer=pEnd;
 			
 			free(CameraName);
-			//free(newname);
 			
 		}while(pSeek);
 		
@@ -306,6 +310,7 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		// **************************************************************************
 			
 		ReadBuffer=(char*)copy;
+		destname=(char*)realloc(destname,FILENAME_MAX);
 			
 		pSeek=strstr(duffile,".duf");
 		if(pSeek)
@@ -408,6 +413,10 @@ void InvestigateFile(char *duffile,char *tmpdirforunzip)
 		
 		system(command);
 		unlink(newname);
+		
+		// **************************************************************************
+		// END
+		// **************************************************************************
 		
 		pSeek=NULL;
 		destname=NULL;
