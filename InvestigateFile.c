@@ -39,7 +39,7 @@ extern PositionCadre ext_MainWindow;
 
 long	copy;
 char	*ReadBuffer;
-char	safety[4096];	// DEBUG
+char	safety_inv[2048]={0};				// on ne sait jamais
 
 // **************************************************************************** 
 // Threads
