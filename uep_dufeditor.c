@@ -28,26 +28,23 @@
 PositionCadre topStatusBar;
 PositionCadre downStatusBar;
 
-extern PositionCadre ext_MainWindow={0};
-
 LinkedList		*Parametres;
 LinkedList		*Fichiers;
 
-extern FILE		*logFile=NULL;
-
-char					*logMessage;
 char					*localWorkingDir=NULL;
 char					*localTempDir=NULL;
+char					*logMessage;
+char					safety_duf[2048]={0};
 
 unsigned short	us_Width;
 unsigned short	us_Height;
 
-
+extern PositionCadre	ext_MainWindow={0};
+extern FILE						*logFile=NULL;
 
 // ****************************************************************************
 // SECTION : prototypes des fonctions en test pour CE code source
 // ****************************************************************************
-
 
 /*
  * FONCTION PRINCIPALE
@@ -89,10 +86,6 @@ int main(int argc,char** argv)
 	
 	// Verify the different parameters...
 	
-	// USAGE:
-	// uep_dufeditor -w <working folder> -t <temporary folder> -f <filename1> <filename2>
-	// uep_dufeditor -t <temporary folder> -f <filename1> <filename2>
-	
 	unsigned params=VerifyParameters(Parametres);
 	if(!params)
 	{
@@ -130,7 +123,6 @@ int main(int argc,char** argv)
 			mkdir(localWorkingDir,S_IRWXU|S_IRWXG|S_IRWXO);
 			//chdir(localWorkingDir);
 		}
-		//DisplayXY(localWorkingDir,FenetrePrincipale.FirstPrintableX,FenetrePrincipale.FirstPrintableY);
 		AddToMessageBoxEx(localWorkingDir,&topStatusBar);
 	}
 	
