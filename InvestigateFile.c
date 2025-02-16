@@ -45,12 +45,6 @@ char	safety_inv[2048]={0};				// on ne sait jamais
 // Threads
 // **************************************************************************** 
 
-#ifdef THREADED
-pthread_mutex_t LockInvestigate;
-pthread_mutex_t LockIO;
-pthread_mutex_t LockMsg;
-#endif
-
 // ****************************************************************************
 // SECTION : implémentation des fonctions
 // ****************************************************************************
